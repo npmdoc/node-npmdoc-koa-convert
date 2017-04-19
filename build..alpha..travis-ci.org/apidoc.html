@@ -1,0 +1,217 @@
+<div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a
+
+        href="https://github.com/gyson/koa-convert#readme"
+
+    >koa-convert (v1.2.0)</a>
+</h1>
+<h4>convert koa legacy generator-based middleware to promise-based middleware</h4>
+<div class="apidocSectionDiv"><a
+    href="#apidoc.tableOfContents"
+    id="apidoc.tableOfContents"
+><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.koa-convert">module koa-convert</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.koa-convert.koa-convert">
+            function <span class="apidocSignatureSpan"></span>koa-convert
+            <span class="apidocSignatureSpan">(mw)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.koa-convert.back">
+            function <span class="apidocSignatureSpan">koa-convert.</span>back
+            <span class="apidocSignatureSpan">(mw)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.koa-convert.compose">
+            function <span class="apidocSignatureSpan">koa-convert.</span>compose
+            <span class="apidocSignatureSpan">(arr)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.koa-convert" id="apidoc.module.koa-convert">module koa-convert</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.koa-convert.koa-convert" id="apidoc.element.koa-convert.koa-convert">
+        function <span class="apidocSignatureSpan"></span>koa-convert
+        <span class="apidocSignatureSpan">(mw)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function convert(mw) {
+  if (typeof mw !== &#x27;function&#x27;) {
+    throw new TypeError(&#x27;middleware must be a function&#x27;)
+  }
+  if (mw.constructor.name !== &#x27;GeneratorFunction&#x27;) {
+    // assume it&#x27;s Promise-based middleware
+    return mw
+  }
+  const converted = function (ctx, next) {
+    return co.call(ctx, mw.call(ctx, createGenerator(next)))
+  }
+  converted._name = mw._name || mw.name
+  return converted
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.koa-convert.back" id="apidoc.element.koa-convert.back">
+        function <span class="apidocSignatureSpan">koa-convert.</span>back
+        <span class="apidocSignatureSpan">(mw)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">back = function (mw) {
+  if (typeof mw !== &#x27;function&#x27;) {
+    throw new TypeError(&#x27;middleware must be a function&#x27;)
+  }
+  if (mw.constructor.name === &#x27;GeneratorFunction&#x27;) {
+    // assume it&#x27;s generator middleware
+    return mw
+  }
+  const converted = function * (next) {
+    let ctx = this
+    let called = false
+    // no need try...catch here, it&#x27;s ok even `mw()` throw exception
+    yield Promise.resolve(mw(ctx, function () {
+      if (called) {
+        // guard against multiple next() calls
+        // https://github.com/koajs/compose/blob/4e3e96baf58b817d71bd44a8c0d78bb42623aa95/index.js#L36
+        return Promise.reject(new Error(&#x27;next() called multiple times&#x27;))
+      }
+      called = true
+      return co.call(ctx, next)
+    }))
+  }
+  converted._name = mw._name || mw.name
+  return converted
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+
+```js
+composedModernMiddleware = convert.compose(legacyMiddleware, modernMiddleware)
+// or
+composedModernMiddleware = convert.compose([legacyMiddleware, modernMiddleware])
+```
+
+#### `convert.<span class="apidocCodeKeywordSpan">back</span>()`
+
+Convert modern promise middleware back to legacy generator middleware.
+
+This is useful to help modern promise middleware support koa 0.x or 1.x.
+
+```js
+legacyMiddleware = convert.back(modernMiddleware)
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.koa-convert.compose" id="apidoc.element.koa-convert.compose">
+        function <span class="apidocSignatureSpan">koa-convert.</span>compose
+        <span class="apidocSignatureSpan">(arr)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">compose = function (arr) {
+  if (!Array.isArray(arr)) {
+    arr = Array.from(arguments)
+  }
+  return compose(arr.map(convert))
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+const convert = require(&#x27;koa-convert&#x27;)
+const app = new Koa()
+
+app.use(modernMiddleware)
+
+app.use(convert(legacyMiddleware))
+
+app.use(convert.<span class="apidocCodeKeywordSpan">compose</span>(legacyMiddleware, modernMiddleware))
+
+function * legacyMiddleware (next) {
+  // before
+  yield next
+  // after
+}
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
